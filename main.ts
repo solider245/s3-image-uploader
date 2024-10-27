@@ -22,7 +22,7 @@ import {
 	FetchHttpHandlerOptions,
 } from "@smithy/fetch-http-handler";
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, ListObjectsCommand } from "@aws-sdk/client-s3";
 import * as crypto from "crypto";
 
 // Remember to rename these classes and interfaces!
@@ -870,3 +870,32 @@ async function uploadFile(file: File) {
     // ... existing upload logic ...
 }
 
+async function testConnection() {
+    const settings = {
+        accountId: this.settings.r2AccountId,
+        accessKeyId: this.settings.r2AccessKeyId,
+        secretAccessKey: this.settings.r2SecretAccessKey,
+        bucket: this.settings.r2Bucket,
+        region: this.settings.r2Region,
+    };
+
+    try {
+        const s3Client = new S3Client({
+            endpoint: `https://${settings.accountId}.r2.cloudflarestorage.com`,
+            region: settings.region,
+            credentials: {
+                accessKeyId: settings.accessKeyId,
+                secretAccessKey: settings.secretAccessKey,
+            },
+        });
+
+        // 尝试列出存储桶中的对象以验证连接
+        const command = new ListObjectsCommand({ Bucket: settings.bucket });
+        await s3Client.send(command);
+        
+        alert("连接成功！");
+    } catch (error) {
+        console.error("连接失败:", error);
+        alert("连接失败: " + error.message);
+    }
+}
