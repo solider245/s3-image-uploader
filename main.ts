@@ -31,7 +31,7 @@ interface pasteFunction {
 	(this: HTMLElement, event: ClipboardEvent | DragEvent): void;
 }
 
-interface S3UploaderSettings {
+interface PluginSettings {
 	accessKey: string;
 	secretKey: string;
 	region: string;
@@ -51,11 +51,15 @@ interface S3UploaderSettings {
 	uploadPdf: boolean;
 	bypassCors: boolean;
 	useR2: boolean;
-	r2AccountId: string;
-	r2Endpoint: string;
+	r2AccountId: string;         // R2 Account ID
+	r2AccessKeyId: string;       // R2 Access Key ID
+	r2SecretAccessKey: string;   // R2 Secret Access Key
+	r2Bucket: string;           // Bucket name
+	r2Region: string;           // Region (default to 'auto')
+	uploadPath: string;         // Path template, e.g. "ShareX/%y/%mo"
 }
 
-const DEFAULT_SETTINGS: S3UploaderSettings = {
+const DEFAULT_SETTINGS: PluginSettings = {
 	accessKey: "",
 	secretKey: "",
 	region: "",
@@ -76,11 +80,15 @@ const DEFAULT_SETTINGS: S3UploaderSettings = {
 	bypassCors: false,
 	useR2: false,
 	r2AccountId: '',
-	r2Endpoint: '',
+	r2AccessKeyId: '',
+	r2SecretAccessKey: '',
+	r2Bucket: '',
+	r2Region: 'auto',
+	uploadPath: 'uploads/%y/%mo',
 };
 
 export default class S3UploaderPlugin extends Plugin {
-	settings: S3UploaderSettings;
+	settings: PluginSettings;
 	s3: S3Client;
 	pasteFunction: pasteFunction;
 
@@ -551,7 +559,7 @@ class S3UploaderSettingTab extends PluginSettingTab {
 							: "https://" + value;
 						value = value.replace(/([^\/])$/, "$1/"); // Force to end with slash
 						this.plugin.settings.customImageUrl = value.trim();
-						await this.plugin.saveSettings();
+							await this.plugin.saveSettings();
 					})
 			);
 
@@ -594,13 +602,61 @@ class S3UploaderSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("R2 Endpoint")
-			.setDesc("R2 endpoint")
+			.setName("R2 Access Key ID")
+			.setDesc("R2 Access Key ID")
 			.addText((text) => {
-				text.setPlaceholder("R2 endpoint")
-					.setValue(this.plugin.settings.r2Endpoint)
+				text.setPlaceholder("R2 Access Key ID")
+					.setValue(this.plugin.settings.r2AccessKeyId)
 					.onChange(async (value) => {
-						this.plugin.settings.r2Endpoint = value.trim();
+						this.plugin.settings.r2AccessKeyId = value.trim();
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("R2 Secret Access Key")
+			.setDesc("R2 Secret Access Key")
+			.addText((text) => {
+				text.setPlaceholder("R2 Secret Access Key")
+					.setValue(this.plugin.settings.r2SecretAccessKey)
+					.onChange(async (value) => {
+						this.plugin.settings.r2SecretAccessKey = value.trim();
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("R2 Bucket")
+			.setDesc("R2 Bucket")
+			.addText((text) => {
+				text.setPlaceholder("R2 Bucket")
+					.setValue(this.plugin.settings.r2Bucket)
+					.onChange(async (value) => {
+						this.plugin.settings.r2Bucket = value.trim();
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("R2 Region")
+			.setDesc("R2 Region")
+			.addText((text) => {
+				text.setPlaceholder("R2 Region")
+					.setValue(this.plugin.settings.r2Region)
+					.onChange(async (value) => {
+						this.plugin.settings.r2Region = value.trim();
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("Upload Path")
+			.setDesc("Upload Path")
+			.addText((text) => {
+				text.setPlaceholder("Upload Path")
+					.setValue(this.plugin.settings.uploadPath)
+					.onChange(async (value) => {
+						this.plugin.settings.uploadPath = value.trim();
 						await this.plugin.saveSettings();
 					});
 			});
@@ -795,5 +851,22 @@ const bufferToArrayBuffer = (b: Buffer | Uint8Array | ArrayBufferView) => {
 	return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
 };
 
+function formatUploadPath(template: string): string {
+    const date = new Date();
+    return template
+        .replace(/%y/g, date.getFullYear().toString())
+        .replace(/%mo/g, (date.getMonth() + 1).toString().padStart(2, '0'))
+        .replace(/%d/g, date.getDate().toString().padStart(2, '0'))
+        .replace(/%h/g, date.getHours().toString().padStart(2, '0'))
+        .replace(/%m/g, date.getMinutes().toString().padStart(2, '0'))
+        .replace(/%s/g, date.getSeconds().toString().padStart(2, '0'));
+}
 
+// 在上传函数中使用
+async function uploadFile(file: File) {
+    const formattedPath = formatUploadPath(this.settings.uploadPath);
+    const key = `${formattedPath}/${file.name}`;
+    
+    // ... existing upload logic ...
+}
 
