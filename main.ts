@@ -50,6 +50,9 @@ interface S3UploaderSettings {
 	uploadAudio: boolean;
 	uploadPdf: boolean;
 	bypassCors: boolean;
+	useR2: boolean;
+	r2AccountId: string;
+	r2Endpoint: string;
 }
 
 const DEFAULT_SETTINGS: S3UploaderSettings = {
@@ -71,6 +74,9 @@ const DEFAULT_SETTINGS: S3UploaderSettings = {
 	uploadAudio: false,
 	uploadPdf: false,
 	bypassCors: false,
+	useR2: false,
+	r2AccountId: '',
+	r2Endpoint: '',
 };
 
 export default class S3UploaderPlugin extends Plugin {
@@ -562,6 +568,63 @@ class S3UploaderSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 			});
+
+		new Setting(containerEl)
+			.setName("Use R2")
+			.setDesc("Enable R2 support")
+			.addToggle((toggle) => {
+				toggle
+					.setValue(this.plugin.settings.useR2)
+					.onChange(async (value) => {
+						this.plugin.settings.useR2 = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("R2 Account ID")
+			.setDesc("R2 account ID")
+			.addText((text) => {
+				text.setPlaceholder("R2 account ID")
+					.setValue(this.plugin.settings.r2AccountId)
+					.onChange(async (value) => {
+						this.plugin.settings.r2AccountId = value.trim();
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName("R2 Endpoint")
+			.setDesc("R2 endpoint")
+			.addText((text) => {
+				text.setPlaceholder("R2 endpoint")
+					.setValue(this.plugin.settings.r2Endpoint)
+					.onChange(async (value) => {
+						this.plugin.settings.r2Endpoint = value.trim();
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName('Use Cloudflare R2')
+			.setDesc('Enable to use Cloudflare R2 instead of AWS S3')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.useR2)
+				.onChange(async (value) => {
+					this.plugin.settings.useR2 = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('R2 Account ID')
+			.setDesc('Your Cloudflare Account ID')
+			.addText(text => text
+				.setPlaceholder('Enter your R2 Account ID')
+				.setValue(this.plugin.settings.r2AccountId)
+				.onChange(async (value) => {
+					this.plugin.settings.r2AccountId = value;
+					await this.plugin.saveSettings();
+				}));
 	}
 }
 
@@ -731,3 +794,6 @@ class ObsHttpHandler extends FetchHttpHandler {
 const bufferToArrayBuffer = (b: Buffer | Uint8Array | ArrayBufferView) => {
 	return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
 };
+
+
+
